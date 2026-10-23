@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Bank Account</title>
+
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f1f5f9;
+        color: #1e293b;
+    }
+
+    header {
+        background: #123456;
+        color: white;
+        padding: 22px;
+        text-align: center;
+    }
+
+    .container {
+        width: 90%;
+        max-width: 550px;
+        margin: 35px auto;
+        padding: 30px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    h2 {
+        margin-top: 0;
+        color: #123456;
+        text-align: center;
+    }
+
+    label {
+        display: block;
+        margin-top: 16px;
+        margin-bottom: 7px;
+        font-weight: bold;
+    }
+
+    input, select {
+        width: 100%;
+        padding: 11px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        font-size: 15px;
+    }
+
+    button {
+        width: 100%;
+        margin-top: 24px;
+        padding: 13px;
+        border: none;
+        border-radius: 6px;
+        background: #123456;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #245a8d;
+    }
+
+    .message {
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+    }
+
+    .success {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .error {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .back-link {
+        display: block;
+        margin-top: 20px;
+        text-align: center;
+        color: #123456;
+        text-decoration: none;
+    }
+</style>
+
+
+</head>
+
+<body>
+
+<header>
+    <h1>Bank Management System</h1>
+    <p>Create a New Customer Account</p>
+</header>
+
+<main class="container">
+
+<h2>Account Registration</h2>
+
+<div th:if="${success}" class="message success"
+     th:text="${success}"></div>
+
+<div th:if="${error}" class="message error"
+     th:text="${error}"></div>
+
+<form th:action="@{/create-account}" method="post">
+
+    <label for="acno">Account Number</label>
+    <input type="number" id="acno" name="acno"
+           min="1" required>
+
+    <label for="cname">Customer Name</label>
+    <input type="text" id="cname" name="cname"
+           maxlength="100" required>
+
+    <label for="email">Email Address</label>
+    <input type="email" id="email" name="email"
+           maxlength="100">
+
+    <label for="accounttype">Account Type</label>
+    <select id="accounttype" name="accounttype" required>
+        <option value="">Select Account Type</option>
+        <option value="Savings">Savings</option>
+        <option value="Current">Current</option>
+    </select>
+
+    <button type="submit">Create Account</button>
+
+</form>
+
+<a href="/" class="back-link">← Back to Home</a>
+
+</main>
+
+</body>
+</html>

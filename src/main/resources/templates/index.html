@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Bank Management System</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f1f5f9;
+            color: #1e293b;
+        }
+
+        header {
+            background-color: #123456;
+            color: white;
+            text-align: center;
+            padding: 25px 15px;
+        }
+
+        header h1 {
+            margin: 0 0 10px;
+        }
+
+        header p {
+            margin: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .welcome-card {
+            background-color: white;
+            padding: 40px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .welcome-card h2 {
+            color: #123456;
+        }
+
+        .welcome-card p {
+            color: #64748b;
+            line-height: 1.7;
+        }
+
+        .button {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 12px 25px;
+            background-color: #123456;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+        }
+
+        .button:hover {
+            background-color: #245a8d;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>Bank Management System</h1>
+        <p>Simple, Secure and Reliable Banking</p>
+    </header>
+
+    <main class="container">
+        <section class="welcome-card">
+            <h2>Welcome to Your Bank</h2>
+
+            <p>
+                Manage customer accounts, deposits, withdrawals,
+                and transaction records from one place.
+            </p>
+
+            <a href="/create-account" class="button">Create Account</a>
+            <a href="/customers" class="button">View All Customers</a>
+            <a href="/search-customer" class="button">Search Customer</a>
+            <a href="/deposit" class="button">Deposit Money</a>
+            <a href="/withdraw" class="button">Withdraw Money</a>
+            <a href="/transactions" class="button">Transaction History</a>
+            <a href="/delete-account" class="button">Delete Account</a>
+            <form th:action="@{/logout}" method="post">
+              <button type="submit" class="button">Logout</button>
+            </form>
+        
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Bank Management System | Educational Project</p>
+    </footer>
+
+</body>
+</html>

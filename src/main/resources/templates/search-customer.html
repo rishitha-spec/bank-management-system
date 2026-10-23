@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Search Customer - Bank Management System</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7fb;
+            margin: 0;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 650px;
+            margin: 40px auto;
+            padding: 30px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #173b67;
+        }
+
+        label {
+            display: block;
+            margin-top: 20px;
+            margin-bottom: 8px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button, .button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 11px 18px;
+            background-color: #173b67;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .error {
+            margin-top: 20px;
+            padding: 12px;
+            background-color: #ffe5e5;
+            color: #a00000;
+            border-radius: 5px;
+        }
+
+        .details {
+            margin-top: 25px;
+            padding: 18px;
+            background-color: #eef5ff;
+            border-radius: 8px;
+        }
+
+        .details p {
+            margin: 12px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <h1>Search Customer</h1>
+
+        <form action="/search-customer" method="post">
+            <label for="acno">Enter Account Number</label>
+
+            <input
+                type="number"
+                id="acno"
+                name="acno"
+                min="1"
+                required
+                placeholder="Example: 1001">
+
+            <button type="submit">Search</button>
+        </form>
+
+        <div class="error" th:if="${error}" th:text="${error}"></div>
+
+        <div class="details" th:if="${customer}">
+            <h2>Customer Details</h2>
+
+            <p><strong>Account Number:</strong>
+                <span th:text="${customer.acno}"></span>
+            </p>
+
+            <p><strong>Customer Name:</strong>
+                <span th:text="${customer.cname}"></span>
+            </p>
+
+            <p><strong>Email:</strong>
+                <span th:text="${customer.email}"></span>
+            </p>
+
+            <p><strong>Account Type:</strong>
+                <span th:text="${customer.accounttype}"></span>
+            </p>
+
+            <p><strong>Balance:</strong>
+                <span th:text="${customer.bal}"></span>
+            </p>
+        </div>
+
+        <a href="/" class="button">Back to Home</a>
+        <a href="/customers" class="button">View All Customers</a>
+
+    </div>
+</body>
+</html>

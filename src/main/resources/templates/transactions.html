@@ -1,0 +1,110 @@
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Transaction History</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            margin: 0;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #ddd;
+        }
+
+        h1 {
+            text-align: center;
+            color: #183153;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 25px;
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        th {
+            background: #183153;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f2f5f9;
+        }
+
+        .empty {
+            text-align: center;
+            margin-top: 25px;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 25px;
+            color: #183153;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <h1>Transaction History</h1>
+
+    <div class="table-container">
+        <table>
+            <thead>
+            <tr>
+                <th>Transaction ID</th>
+                <th>Account Number</th>
+                <th>Transaction Type</th>
+                <th>Amount (₹)</th>
+                <th>Date and Time</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            <tr th:each="transaction : ${transactions}">
+                <td th:text="${transaction.tid}"></td>
+                <td th:text="${transaction.acno}"></td>
+                <td th:text="${transaction.transactionType}"></td>
+                <td th:text="${transaction.amount}"></td>
+                <td th:text="${transaction.transactionDate != null
+                    ? #temporals.format(transaction.transactionDate, 'dd-MM-yyyy HH:mm')
+                    : 'Not available'}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p class="empty"
+       th:if="${#lists.isEmpty(transactions)}">
+        No transactions have been recorded yet.
+    </p>
+
+    <a href="/">← Back to Home</a>
+
+</div>
+</body>
+</html>

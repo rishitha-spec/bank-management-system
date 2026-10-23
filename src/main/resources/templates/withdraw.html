@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Withdraw Money</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .container {
+            background-color: white;
+            max-width: 400px;
+            margin: auto;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #cccccc;
+        }
+
+        input {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #d9534f;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .error {
+            color: red;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Withdraw Money</h1>
+        <p>Enter your account details to withdraw money.</p>
+
+        <p class="success" th:if="${success}" th:text="${success}"></p>
+        <p class="error" th:if="${error}" th:text="${error}"></p>
+
+        <form th:action="@{/withdraw}" method="post">
+            <input
+                type="number"
+                name="acno"
+                placeholder="Enter Account Number"
+                min="1"
+                required>
+
+            <input
+                type="number"
+                name="amount"
+                placeholder="Enter Withdrawal Amount"
+                min="0.01"
+                step="0.01"
+                required>
+
+            <button type="submit">Withdraw</button>
+        </form>
+
+        <br>
+        <a href="/">Back to Home</a>
+        <br>
+        <a href="/customers">View All Customers</a>
+    </div>
+</body>
+</html>
