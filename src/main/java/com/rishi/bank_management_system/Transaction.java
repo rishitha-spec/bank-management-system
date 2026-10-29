@@ -1,3 +1,4 @@
+
 package com.rishi.bank_management_system;
 
 import java.math.BigDecimal;
@@ -49,5 +50,14 @@ public class Transaction {
 
     public void setTransactionDate(LocalDateTime transactionDate) {
         this.transactionDate = transactionDate;
+    }
+
+    @Override
+    public String toString() {
+        return "Transaction ID: " + tid
+                + " | Type: " + transactionType
+                + " | Account Number: " + acno
+                + " | Amount: Rs. " + amount
+                + " | Date: " + transactionDate;
     }
 }

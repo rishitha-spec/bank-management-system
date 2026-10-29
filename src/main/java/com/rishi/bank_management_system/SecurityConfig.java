@@ -13,6 +13,9 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
+@org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication(
+    type = org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type.SERVLET
+)
 public class SecurityConfig {
 
     @Bean

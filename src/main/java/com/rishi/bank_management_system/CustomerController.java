@@ -2,142 +2,173 @@ package com.rishi.bank_management_system;
 
 import java.math.BigDecimal;
 
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class CustomerController {
 
 private final CustomerRepository customerRepository;
 
-public CustomerController(CustomerRepository customerRepository) {
+public CustomerController(
+        CustomerRepository customerRepository) {
+
     this.customerRepository = customerRepository;
 }
 
+// Open account creation page
 @GetMapping("/create-account")
-public String showCreateAccountForm() {
+public String showCreateAccountPage() {
     return "create-account";
 }
 
+// Create a new customer account
 @PostMapping("/create-account")
 public String createAccount(
         @RequestParam int acno,
         @RequestParam String cname,
-        @RequestParam(required = false) String email,
+        @RequestParam String email,
         @RequestParam String accounttype,
-        Model model,
-        RedirectAttributes redirectAttributes) {
+        Model model) {
 
-    if (acno <= 0 || cname.isBlank()) {
-        model.addAttribute("error",
-                "Enter a valid account number and customer name.");
+    if (acno <= 0) {
+        model.addAttribute(
+                "error",
+                "Enter a valid account number."
+        );
+
         return "create-account";
     }
 
-    if (!accounttype.equals("Savings")
-            && !accounttype.equals("Current")) {
-        model.addAttribute("error", "Select a valid account type.");
+    if (cname == null || cname.trim().isEmpty()) {
+        model.addAttribute(
+                "error",
+                "Customer name cannot be empty."
+        );
+
+        return "create-account";
+    }
+
+    if (!"Savings".equalsIgnoreCase(accounttype)
+            && !"Current".equalsIgnoreCase(accounttype)) {
+
+        model.addAttribute(
+                "error",
+                "Select a valid account type."
+        );
+
         return "create-account";
     }
 
     Customer customer = new Customer();
+
     customer.setAcno(acno);
     customer.setCname(cname.trim());
-    customer.setEmail(
-            email == null || email.isBlank() ? null : email.trim());
+    customer.setEmail(email);
     customer.setAccounttype(accounttype);
     customer.setBal(BigDecimal.ZERO);
 
     try {
+
         customerRepository.saveCustomer(customer);
 
-        redirectAttributes.addFlashAttribute(
-                "success", "Account created successfully!");
+        model.addAttribute(
+                "success",
+                "Account created successfully!"
+        );
 
-        return "redirect:/create-account";
+    } catch (DuplicateKeyException ex) {
 
-    } catch (org.springframework.dao.DuplicateKeyException ex) {
-        model.addAttribute("error",
-                "That account number already exists.");
-        return "create-account";
+        model.addAttribute(
+                "error",
+                "An account with this number already exists."
+        );
+
+    } catch (Exception ex) {
+         ex.printStackTrace();
+         model.addAttribute("error", "Unable to create account. Please try again.");
     }
+
+    return "create-account";
 }
+
+// Display all customers
 @GetMapping("/customers")
 public String viewCustomers(Model model) {
+
     model.addAttribute(
-        "customers",
-        customerRepository.findAllCustomers()
+            "customers",
+            customerRepository.findAllCustomers()
     );
 
     return "customers";
 }
-@GetMapping("/search-customer")
-public String showSearchPage() {
-    return "search-customer";
-}
 
-@PostMapping("/search-customer")
+// Search for a customer
+@GetMapping("/search-customer")
 public String searchCustomer(
-        @RequestParam int acno,
+        @RequestParam(required = false) Integer acno,
         Model model) {
+
+    if (acno == null || acno <= 0) {
+        model.addAttribute(
+                "error",
+                "Enter a valid account number."
+        );
+
+        return "search-customer";
+    }
 
     Customer customer =
             customerRepository.findCustomerByAccountNumber(acno);
 
-    if (customer != null) {
-        model.addAttribute("customer", customer);
-    } else {
+    if (customer == null) {
+
         model.addAttribute(
                 "error",
-                "No customer found with account number " + acno
+                "No customer found with account number " + acno + "."
         );
+
+    } else {
+
+        model.addAttribute("customer", customer);
     }
 
     return "search-customer";
 }
+
+// Open deposit page
 @GetMapping("/deposit")
 public String showDepositPage() {
     return "deposit";
 }
 
+// Deposit money
 @PostMapping("/deposit")
 public String depositMoney(
         @RequestParam int acno,
         @RequestParam BigDecimal amount,
         Model model) {
 
-    if (acno <= 0
-        || amount == null
-        || amount.compareTo(BigDecimal.ZERO) <= 0
-        || amount.compareTo(new BigDecimal("50000")) > 0) {
-
-    model.addAttribute(
-            "error",
-            "Enter a valid account number and a deposit amount between ₹0.01 and ₹50,000."
-    );
-
-    return "deposit";
-}
-
     try {
-        int rowsUpdated = customerRepository.depositMoney(acno, amount);
 
-        if (rowsUpdated == 1) {
-            model.addAttribute(
-                    "success",
-                    "Deposit successful! Amount deposited: " + amount
-            );
-        } else {
-            model.addAttribute(
-                    "error",
-                    "No customer found with account number " + acno
-            );
-        }
+        customerRepository.depositMoney(acno, amount);
+
+        model.addAttribute(
+                "success",
+                "Deposit successful! Amount deposited: ₹" + amount
+        );
+
+    } catch (InvalidAccount | InvalidAmt ex) {
+
+        model.addAttribute("error", ex.getMessage());
+
     } catch (Exception ex) {
+
         model.addAttribute(
                 "error",
                 "The deposit could not be completed. Please try again."
@@ -146,57 +177,37 @@ public String depositMoney(
 
     return "deposit";
 }
+
+// Open withdrawal page
 @GetMapping("/withdraw")
 public String showWithdrawPage() {
     return "withdraw";
 }
 
-// Process a withdrawal
+// Withdraw money
 @PostMapping("/withdraw")
 public String withdrawMoney(
         @RequestParam int acno,
         @RequestParam BigDecimal amount,
         Model model) {
 
-    if (acno <= 0 || amount == null
-            || amount.compareTo(BigDecimal.ZERO) <= 0) {
-        model.addAttribute(
-                "error",
-                "Enter a valid account number and an amount greater than zero."
-        );
-        return "withdraw";
-    }
-
     try {
-        String result = customerRepository.withdrawMoney(acno, amount);
 
-        switch (result) {
-            case "SUCCESS" ->
-                    model.addAttribute(
-                            "success",
-                            "Withdrawal successful! Amount withdrawn: ₹" + amount
-                    );
+        customerRepository.withdrawMoney(acno, amount);
 
-            case "ACCOUNT_NOT_FOUND" ->
-                    model.addAttribute(
-                            "error",
-                            "No account found with number " + acno
-                    );
+        model.addAttribute(
+                "success",
+                "Withdrawal successful! Amount withdrawn: ₹" + amount
+        );
 
-            case "INSUFFICIENT_BALANCE" ->
-                    model.addAttribute(
-                            "error",
-                            "Insufficient balance. Withdrawal was not completed."
-                    );
+    } catch (InvalidAccount
+            | InvalidAmt
+            | InsufficientFunds ex) {
 
-            default ->
-                    model.addAttribute(
-                            "error",
-                            "Invalid withdrawal details."
-                    );
-        }
+        model.addAttribute("error", ex.getMessage());
 
     } catch (Exception ex) {
+
         model.addAttribute(
                 "error",
                 "The withdrawal could not be completed. Please try again."
@@ -208,7 +219,8 @@ public String withdrawMoney(
 
 // Display transaction history
 @GetMapping("/transactions")
-public String showTransactions(Model model) {
+public String viewTransactions(Model model) {
+
     model.addAttribute(
             "transactions",
             customerRepository.findAllTransactions()
@@ -216,62 +228,53 @@ public String showTransactions(Model model) {
 
     return "transactions";
 }
-// Display the delete-account page
-@GetMapping("/delete-account")
-public String showDeleteAccountPage() {
-    return "delete-account";
-}
 
-// Process account deletion
+// Delete an account
 @PostMapping("/delete-account")
 public String deleteAccount(
         @RequestParam int acno,
         Model model) {
 
-    if (acno <= 0) {
-        model.addAttribute(
-                "error",
-                "Enter a valid account number."
-        );
-        return "delete-account";
-    }
-
     try {
+
         String result = customerRepository.deleteCustomer(acno);
 
-        switch (result) {
-            case "SUCCESS" ->
-                    model.addAttribute(
-                            "success",
-                            "Account " + acno + " deleted successfully."
-                    );
+        if ("SUCCESS".equals(result)) {
 
-            case "ACCOUNT_NOT_FOUND" ->
-                    model.addAttribute(
-                            "error",
-                            "No account found with number " + acno
-                    );
+            model.addAttribute(
+                    "success",
+                    "Account deleted successfully."
+            );
 
-            case "HAS_TRANSACTIONS" ->
-                    model.addAttribute(
-                            "error",
-                            "This account has transaction history and cannot be deleted."
-                    );
+        } else if ("ACCOUNT_NOT_FOUND".equals(result)) {
 
-            default ->
-                    model.addAttribute(
-                            "error",
-                            "The account could not be deleted."
-                    );
+            model.addAttribute(
+                    "error",
+                    "Account not found."
+            );
+
+        } else if ("HAS_TRANSACTIONS".equals(result)) {
+
+            model.addAttribute(
+                    "error",
+                    "This account has transaction history "
+                            + "and cannot be deleted."
+            );
         }
 
+    } catch (InvalidAccount ex) {
+
+        model.addAttribute("error", ex.getMessage());
+
     } catch (Exception ex) {
+
         model.addAttribute(
                 "error",
-                "The account could not be deleted. Please try again."
+                "Unable to delete account. Please try again."
         );
     }
 
-    return "delete-account";
+    return "customers";
 }
+
 }

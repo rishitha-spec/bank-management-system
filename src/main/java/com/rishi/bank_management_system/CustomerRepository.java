@@ -1,222 +1,298 @@
 package com.rishi.bank_management_system;
 
 import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class CustomerRepository {
 
-    private final JdbcTemplate jdbcTemplate;
+private final JdbcTemplate jdbcTemplate;
 
-    public CustomerRepository(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+public CustomerRepository(JdbcTemplate jdbcTemplate) {
+    this.jdbcTemplate = jdbcTemplate;
+}
+
+// Map database rows to Customer objects
+private final RowMapper<Customer> customerRowMapper =
+        new RowMapper<Customer>() {
+
+    @Override
+    public Customer mapRow(ResultSet rs, int rowNum)
+            throws SQLException {
+
+        Customer customer = new Customer();
+
+        customer.setAcno(rs.getInt("acno"));
+        customer.setCname(rs.getString("cname"));
+        customer.setEmail(rs.getString("email"));
+        customer.setAccounttype(rs.getString("accounttype"));
+        customer.setBal(rs.getBigDecimal("bal"));
+
+        return customer;
+    }
+};
+
+// Create a new customer account
+public void saveCustomer(Customer customer) {
+
+    String sql = """
+            INSERT INTO customers
+            (acno, cname, email, accounttype, bal)
+            VALUES (?, ?, ?, ?, ?)
+            """;
+
+    jdbcTemplate.update(
+            sql,
+            customer.getAcno(),
+            customer.getCname(),
+            customer.getEmail(),
+            customer.getAccounttype(),
+            customer.getBal()
+    );
+}
+
+// Display all customers
+public List<Customer> findAllCustomers() {
+
+    String sql = """
+            SELECT acno, cname, email, accounttype, bal
+            FROM customers
+            ORDER BY acno
+            """;
+
+    return jdbcTemplate.query(sql, customerRowMapper);
+}
+
+// Search for a customer using account number
+public Customer findCustomerByAccountNumber(int acno) {
+
+    String sql = """
+            SELECT acno, cname, email, accounttype, bal
+            FROM customers
+            WHERE acno = ?
+            """;
+
+    List<Customer> customers = jdbcTemplate.query(
+            sql,
+            customerRowMapper,
+            acno
+    );
+
+    if (customers.isEmpty()) {
+        return null;
     }
 
-    // Create a new customer account
-    public int saveCustomer(Customer customer) {
+    return customers.get(0);
+}
 
-        String sql = """
-                INSERT INTO customers
-                (acno, cname, email, accounttype, bal)
-                VALUES (?, ?, ?, ?, ?)
-                """;
+// Deposit money
+@Transactional
+public String depositMoney(int acno, BigDecimal amount) {
 
-        return jdbcTemplate.update(
-                sql,
-                customer.getAcno(),
-                customer.getCname(),
-                customer.getEmail(),
-                customer.getAccounttype(),
-                customer.getBal() == null
-                        ? BigDecimal.ZERO
-                        : customer.getBal()
+    if (acno <= 0) {
+        throw new InvalidAccount(
+                "Enter a valid account number."
         );
     }
 
-    // Retrieve all customers
-    public List<Customer> findAllCustomers() {
+    if (amount == null
+            || amount.compareTo(BigDecimal.ZERO) <= 0) {
 
-        String sql = "SELECT * FROM customers ORDER BY acno";
-
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Customer customer = new Customer();
-
-            customer.setAcno(rs.getInt("acno"));
-            customer.setCname(rs.getString("cname"));
-            customer.setEmail(rs.getString("email"));
-            customer.setAccounttype(rs.getString("accounttype"));
-            customer.setBal(rs.getBigDecimal("bal"));
-
-            return customer;
-        });
+        throw new InvalidAmt(
+                "Deposit amount must be greater than zero."
+        );
     }
 
-    // Find a customer by account number
-    public Customer findCustomerByAccountNumber(int acno) {
+    BigDecimal maximumAmount = new BigDecimal("50000");
 
-        String sql = "SELECT * FROM customers WHERE acno = ?";
-
-        List<Customer> results = jdbcTemplate.query(
-                sql,
-                (rs, rowNum) -> {
-                    Customer customer = new Customer();
-
-                    customer.setAcno(rs.getInt("acno"));
-                    customer.setCname(rs.getString("cname"));
-                    customer.setEmail(rs.getString("email"));
-                    customer.setAccounttype(rs.getString("accounttype"));
-                    customer.setBal(rs.getBigDecimal("bal"));
-
-                    return customer;
-                },
-                acno
+    if (amount.compareTo(maximumAmount) > 0) {
+        throw new InvalidAmt(
+                "Maximum deposit amount is ₹50,000."
         );
-
-        return results.isEmpty() ? null : results.get(0);
     }
 
-    // Deposit money and record the transaction
-    @Transactional
-    public int depositMoney(int acno, BigDecimal amount) {
+    Customer customer = findCustomerByAccountNumber(acno);
 
-        if (acno <= 0 || amount == null
-                || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            return 0;
-        }
-
-        String updateSql =
-                "UPDATE customers SET bal = bal + ? WHERE acno = ?";
-
-        int rowsUpdated = jdbcTemplate.update(
-                updateSql,
-                amount,
-                acno
+    if (customer == null) {
+        throw new InvalidAccount(
+                "No account found with number " + acno + "."
         );
+    }
 
-        if (rowsUpdated == 1) {
+    String updateSql = """
+            UPDATE customers
+            SET bal = bal + ?
+            WHERE acno = ?
+            """;
 
-            String insertSql = """
-                    INSERT INTO transactions
-                    (transaction_type, acno, amount)
-                    VALUES (?, ?, ?)
-                    """;
+    jdbcTemplate.update(updateSql, amount, acno);
 
-            jdbcTemplate.update(
-                    insertSql,
-                    "DEPOSIT",
-                    acno,
-                    amount
+    String transactionSql = """
+            INSERT INTO transactions
+            (transaction_type, acno, amount)
+            VALUES (?, ?, ?)
+            """;
+
+    jdbcTemplate.update(
+            transactionSql,
+            "DEPOSIT",
+            acno,
+            amount
+    );
+
+    return "SUCCESS";
+}
+
+// Withdraw money
+@Transactional
+public String withdrawMoney(int acno, BigDecimal amount) {
+
+    BigDecimal minimumAmount = new BigDecimal("100");
+
+    if (acno <= 0) {
+        throw new InvalidAccount(
+                "Enter a valid account number."
+        );
+    }
+
+    if (amount == null
+            || amount.compareTo(minimumAmount) < 0) {
+
+        throw new InvalidAmt(
+                "Withdrawal amount must be at least ₹100."
+        );
+    }
+
+    String updateSql = """
+            UPDATE customers
+            SET bal = bal - ?
+            WHERE acno = ?
+              AND bal >= ?
+            """;
+
+    int rowsUpdated = jdbcTemplate.update(
+            updateSql,
+            amount,
+            acno,
+            amount
+    );
+
+    if (rowsUpdated == 0) {
+
+        Customer customer =
+                findCustomerByAccountNumber(acno);
+
+        if (customer == null) {
+            throw new InvalidAccount(
+                    "No account found with number "
+                            + acno + "."
             );
         }
 
-        return rowsUpdated;
+        throw new InsufficientFunds(
+                "Insufficient balance. "
+                        + "Withdrawal was not completed."
+        );
     }
 
-    // Withdraw money only when sufficient balance is available
-    @Transactional
-    public String withdrawMoney(int acno, BigDecimal amount) {
+    String transactionSql = """
+            INSERT INTO transactions
+            (transaction_type, acno, amount)
+            VALUES (?, ?, ?)
+            """;
 
-        if (acno <= 0 || amount == null
-                || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            return "INVALID_AMOUNT";
-        }
+    jdbcTemplate.update(
+            transactionSql,
+            "WITHDRAWAL",
+            acno,
+            amount
+    );
 
-        String updateSql = """
-                UPDATE customers
-                SET bal = bal - ?
-                WHERE acno = ?
-                  AND bal >= ?
-                """;
+    return "SUCCESS";
+}
 
-        int rowsUpdated = jdbcTemplate.update(
-                updateSql,
-                amount,
-                acno,
-                amount
+// Display transaction history
+public List<Transaction> findAllTransactions() {
+
+    String sql = """
+            SELECT tid, transaction_type, acno,
+                   amount, transaction_date
+            FROM transactions
+            ORDER BY transaction_date DESC
+            """;
+
+    return jdbcTemplate.query(sql, (rs, rowNum) -> {
+
+        Transaction transaction = new Transaction();
+
+        transaction.setTid(rs.getInt("tid"));
+        transaction.setTransactionType(
+                rs.getString("transaction_type")
         );
+        transaction.setAcno(rs.getInt("acno"));
+        transaction.setAmount(rs.getBigDecimal("amount"));
 
-        if (rowsUpdated == 0) {
-
-            Customer customer = findCustomerByAccountNumber(acno);
-
-            if (customer == null) {
-                return "ACCOUNT_NOT_FOUND";
-            }
-
-            return "INSUFFICIENT_BALANCE";
-        }
-
-        String insertSql = """
-                INSERT INTO transactions
-                (transaction_type, acno, amount)
-                VALUES (?, ?, ?)
-                """;
-
-        jdbcTemplate.update(
-                insertSql,
-                "WITHDRAWAL",
-                acno,
-                amount
-        );
-
-        return "SUCCESS";
-    }
-
-    // Retrieve transaction history for all accounts
-    public List<Transaction> findAllTransactions() {
-
-        String sql = """
-                SELECT tid, transaction_type, acno, amount, transaction_date
-                FROM transactions
-                ORDER BY tid DESC
-                """;
-
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Transaction transaction = new Transaction();
-
-            transaction.setTid(rs.getInt("tid"));
-            transaction.setTransactionType(
-                    rs.getString("transaction_type"));
-            transaction.setAcno(rs.getInt("acno"));
-            transaction.setAmount(rs.getBigDecimal("amount"));
+        if (rs.getTimestamp("transaction_date") != null) {
             transaction.setTransactionDate(
-                    rs.getTimestamp("transaction_date").toLocalDateTime());
+                    rs.getTimestamp("transaction_date")
+                            .toLocalDateTime()
+            );
+        }
 
-            return transaction;
-        });
+        return transaction;
+    });
+}
+
+// Delete a customer account
+// Accounts with transaction history cannot be deleted.
+@Transactional
+public String deleteCustomer(int acno) {
+
+    if (acno <= 0) {
+        throw new InvalidAccount(
+                "Enter a valid account number."
+        );
     }
-    public String deleteCustomer(int acno) {
 
-    String checkAccountSql =
-            "SELECT COUNT(*) FROM customers WHERE acno = ?";
+    Customer customer = findCustomerByAccountNumber(acno);
 
-    Integer accountCount = jdbcTemplate.queryForObject(
-            checkAccountSql, Integer.class, acno);
-
-    if (accountCount == null || accountCount == 0) {
+    if (customer == null) {
         return "ACCOUNT_NOT_FOUND";
     }
 
-    String checkTransactionsSql =
-            "SELECT COUNT(*) FROM transactions WHERE acno = ?";
+    String transactionCheckSql = """
+            SELECT COUNT(*)
+            FROM transactions
+            WHERE acno = ?
+            """;
 
     Integer transactionCount = jdbcTemplate.queryForObject(
-            checkTransactionsSql, Integer.class, acno);
+            transactionCheckSql,
+            Integer.class,
+            acno
+    );
 
     if (transactionCount != null && transactionCount > 0) {
         return "HAS_TRANSACTIONS";
     }
 
-    String deleteSql = "DELETE FROM customers WHERE acno = ?";
+    String deleteSql = """
+            DELETE FROM customers
+            WHERE acno = ?
+            """;
 
-    int deletedRows = jdbcTemplate.update(deleteSql, acno);
+    int rowsDeleted = jdbcTemplate.update(deleteSql, acno);
 
-    return deletedRows == 1 ? "SUCCESS" : "FAILED";
+    return rowsDeleted > 0
+            ? "SUCCESS"
+            : "ACCOUNT_NOT_FOUND";
 }
-    
-}
 
+}
